@@ -1,0 +1,803 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متجر عصري | Minimalist Store</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Inter / Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: '#111111',
+                        light: '#F9F9F9',
+                        accent: '#222222',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #FAFAFA; color: #1a1a1a; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-black selection:text-white">
+
+    <!-- Top Bar / Navbar -->
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <a href="#" id="store-logo-text" onclick="switchView('store')" class="text-xl font-bold tracking-tight text-dark">متجري العصري</a>
+            </div>
+
+            <!-- Navigation Links & Actions -->
+            <div class="flex items-center space-x-6 space-x-reverse">
+                <button onclick="switchView('store')" class="text-sm font-medium hover:text-black text-gray-600 transition">الرئيسية</button>
+                <button onclick="openCartModal()" class="relative p-2 rounded-full hover:bg-gray-100 transition text-dark">
+                    <i class="fa-solid fa-bag-shopping text-lg"></i>
+                    <span id="cart-badge" class="absolute top-0 right-0 bg-black text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                </button>
+                <button onclick="openAdminLoginModal()" class="text-xs text-gray-400 hover:text-black transition border border-gray-200 px-3 py-1.5 rounded-full">
+                    <i class="fa-solid fa-lock ml-1"></i> Admin
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- ================= STORE VIEW ================= -->
+        <div id="view-store" class="space-y-12">
+            <!-- Hero / Intro Banner -->
+            <div class="bg-dark text-white rounded-3xl p-8 sm:p-16 flex flex-col items-start justify-center relative overflow-hidden">
+                <div class="relative z-10 max-w-xl space-y-4">
+                    <span class="text-xs uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">تشكيلة جديدة</span>
+                    <h1 id="hero-title" class="text-3xl sm:text-5xl font-bold tracking-tight">تصاميم بسيطة، أناقة تدوم.</h1>
+                    <p id="hero-subtitle" class="text-gray-300 text-sm sm:text-base font-light">تسوق أحدث المنتجات المختارة بعناية لتناسب ذوقك الرفيع بجودة عالية.</p>
+                    <button onclick="scrollToProducts()" class="bg-white text-dark text-sm font-semibold px-6 py-3 rounded-full hover:bg-gray-200 transition">تسوق الان</button>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div id="products-section" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl sm:text-2xl font-bold text-dark">المنتجات المتوفرة</h2>
+                    <span id="products-count" class="text-xs text-gray-500">جاري التحميل...</span>
+                </div>
+                <!-- Products Grid -->
+                <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                    <!-- Dynamic Products Loaded Here -->
+                    <div class="col-span-full text-center py-20 text-gray-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>جاري جلب المنتجات من قاعدة البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN LOGIN VIEW / MODAL ================= -->
+        <div id="modal-admin-login" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl relative">
+                <button onclick="closeAdminLoginModal()" class="absolute top-6 left-6 text-gray-400 hover:text-black">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="space-y-2 text-center">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-dark mb-4">
+                        <i class="fa-solid fa-shield-halved text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold">تسجيل دخول المشرف</h3>
+                    <p class="text-xs text-gray-500">أدخل كلمة المرور الخاصة بلوحة التحكم</p>
+                </div>
+                <form id="admin-login-form" onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">كلمة المرور السرية</label>
+                        <input type="password" id="admin-password-input" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-dark text-white font-medium py-3 rounded-xl hover:bg-gray-800 transition">دخول لوحة التحكم</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN DASHBOARD VIEW ================= -->
+        <div id="view-admin" class="hidden space-y-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <div>
+                    <h1 class="text-2xl font-bold">لوحة التحكم (Admin Dashboard)</h1>
+                    <p class="text-xs text-gray-500">إدارة المنتجات، الطلبات، وإعدادات المتجر بكل سهولة.</p>
+                </div>
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <button onclick="switchView('store')" class="bg-gray-100 text-dark px-4 py-2 rounded-xl text-xs font-semibold hover:bg-gray-200 transition">عرض المتجر</button>
+                    <button onclick="logoutAdmin()" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-red-100 transition">تسجيل الخروج</button>
+                </div>
+            </div>
+
+            <!-- Admin Tabs Navigation -->
+            <div class="flex space-x-2 space-x-reverse border-b border-gray-200 pb-2">
+                <button onclick="switchAdminTab('products')" id="tab-btn-products" class="px-5 py-2.5 rounded-xl font-medium text-sm bg-dark text-white transition">إدارة المنتجات</button>
+                <button onclick="switchAdminTab('orders')" id="tab-btn-orders" class="px-5 py-2.5 rounded-xl font-medium text-sm text-gray-600 hover:bg-gray-100 transition">طلبات الزبناء (<span id="orders-count-badge">0</span>)</button>
+                <button onclick="switchAdminTab('settings')" id="tab-btn-settings" class="px-5 py-2.5 rounded-xl font-medium text-sm text-gray-600 hover:bg-gray-100 transition">إعدادات المتجر</button>
+                <button onclick="switchAdminTab('guide')" id="tab-btn-guide" class="px-5 py-2.5 rounded-xl font-medium text-sm text-gray-600 hover:bg-gray-100 transition">دليل الربط (شرح الدارجة)</button>
+            </div>
+
+            <!-- TAB 1: PRODUCTS MANAGEMENT -->
+            <div id="admin-tab-products" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold">قائمة المنتجات</h3>
+                    <button onclick="openProductModal()" class="bg-dark text-white px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-800 transition flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>إضافة منتج جديد</span>
+                    </button>
+                </div>
+                <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 font-semibold">
+                                    <th class="p-4">المنتج</th>
+                                    <th class="p-4">السعر</th>
+                                    <th class="p-4">المخزون</th>
+                                    <th class="p-4 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-products-table-body" class="divide-y divide-gray-100 text-sm">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ORDERS MANAGEMENT -->
+            <div id="admin-tab-orders" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold">طلبات الزبناء الواردة</h3>
+                    <button onclick="loadAdminOrders()" class="text-xs text-gray-500 hover:text-black flex items-center space-x-1 space-x-reverse">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>تحديث القائمة</span>
+                    </button>
+                </div>
+                <div class="space-y-4" id="admin-orders-list">
+                    <!-- Loaded dynamically -->
+                    <div class="bg-white p-8 rounded-3xl text-center text-gray-400 border border-gray-100">جاري تحميل الطلبات...</div>
+                </div>
+            </div>
+
+            <!-- TAB 3: STORE SETTINGS -->
+            <div id="admin-tab-settings" class="hidden space-y-6">
+                <div class="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm max-w-2xl">
+                    <h3 class="text-lg font-bold mb-4">إعدادات المتجر العامة</h3>
+                    <form id="settings-form" onsubmit="saveStoreSettings(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">اسم المتجر</label>
+                            <input type="text" id="setting-store-name" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف الرسمي</label>
+                            <input type="text" id="setting-phone" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">رقم واتساب (مع رمز الدولة، مثلاً: 212600000000)</label>
+                            <input type="text" id="setting-whatsapp" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                        </div>
+                        <button type="submit" class="bg-dark text-white px-6 py-3 rounded-xl font-medium text-xs hover:bg-gray-800 transition">حفظ التغييرات</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 4: GUIDE & MOROCCAN DARIJA SETUP INSTRUCTIONS -->
+            <div id="admin-tab-guide" class="hidden space-y-6">
+                <div class="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6 text-sm leading-relaxed">
+                    <h3 class="text-xl font-bold text-dark border-b pb-3"><i class="fa-solid fa-circle-question ml-2"></i> دليل الربط وطريقة الاستخدام (بالدارجة المغربية)</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-base mb-1">1. كيفاش تربط الموقع مع Supabase؟</h4>
+                            <p class="text-gray-600 text-xs sm:text-sm">
+                                سير لـ موقع <a href="https://supabase.com" target="_blank" class="text-blue-600 underline">Supabase.com</a> وفتح حساب مجاني. من بعد صاوب Project جديد. من إعدادات المشروع (Settings > API) غا تلقى جوج حوايج مهمين: <b>Project URL</b> و <b>anon / public API Key</b>. هبط لتحت في هاد الكود (في آخر الملف JavaScript) وحطهم بلاصة المتغيرات `SUPABASE_URL` و `SUPABASE_ANON_KEY`.
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-base mb-1">2. شنصاوب في قاعدة البيانات (Tables)؟</h4>
+                            <p class="text-gray-600 text-xs sm:text-sm mb-2">في لوحة تحكم Supabase (قسم SQL Editor)، خصك تنشئ 3 جدولات رئيسية:</p>
+                            <ul class="list-disc list-inside text-xs text-gray-700 space-y-1 font-mono bg-white p-3 rounded-xl border">
+                                <li><b>products</b> (id, title, price, stock, image, description)</li>
+                                <li><b>orders</b> (id, customer_name, customer_phone, customer_address, items, total, status, created_at)</li>
+                                <li><b>settings</b> (id, store_name, phone, whatsapp)</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-base mb-1">3. كيفاش ترفع الموقع على GitHub Pages؟</h4>
+                            <p class="text-gray-600 text-xs sm:text-sm">
+                                سدي هاد الكود كامل فملف سميتو <code>index.html</code>، وحطو بوحدو فـ Repository جديدة فـ GitHub. من بعد سير لـ Settings > Pages واختار الـ Branch لي هو `main` أو `root`. في دقائق معدودة غادي يعطيك الرابط ديال موقعك خدام 100% وفي أي بلاصة فالعالم!
+                            </p>
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <h4 class="font-bold text-base mb-1">4. معلومات الدخول للـ Admin وكلمة المرور</h4>
+                            <p class="text-gray-600 text-xs sm:text-sm">
+                                كلمة المرور الافتراضية للوحة التحكم هي <b>admin123</b> (يمكن ليك تبدلها فالكود الفوق). التغييرات كاملة كاتحفظ مباشرة في Supabase داكشي علاش ما كاتضيعش نهائياً وخا تحل الموقع من أي جهاز آخر.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Cart / Checkout Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-lg h-full flex flex-col justify-between p-6 sm:p-8 shadow-2xl relative overflow-y-auto">
+            <div>
+                <div class="flex justify-between items-center border-b pb-4 mb-6">
+                    <h3 class="text-lg font-bold">سلة التسوق الخاصة بك</h3>
+                    <button onclick="closeCartModal()" class="text-gray-400 hover:text-black">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Cart Items Container -->
+                <div id="cart-items-container" class="space-y-4 mb-6">
+                    <!-- Items injected here -->
+                    <p class="text-center text-gray-400 py-10">السلة فارغة حالياً</p>
+                </div>
+            </div>
+
+            <div id="cart-footer" class="border-t pt-6 space-y-4 hidden">
+                <div class="flex justify-between text-base font-bold">
+                    <span>المجموع الكلي:</span>
+                    <span id="cart-total-price">0.00 درهم</span>
+                </div>
+
+                <!-- Checkout Form (Mandatory Fields) -->
+                <form id="checkout-form" onsubmit="submitOrder(event)" class="space-y-3 pt-2 border-t">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase">معلومات الشحن (إجبارية)</h4>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">الاسم الكامل (Nom complet)</label>
+                        <input type="text" id="order-name" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-black transition" placeholder="الاسم الشخصي والعائلي">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف (Numéro de téléphone)</label>
+                        <input type="tel" id="order-phone" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-black transition" placeholder="06XXXXXXXX">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">العنوان الكامل (Adresse complète)</label>
+                        <textarea id="order-address" required rows="2" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-black transition" placeholder="المدينة، الحي، الشارع، رقم المنزل..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-dark text-white font-medium py-3 rounded-xl hover:bg-gray-800 transition text-sm">إرسال الطلب الآن</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal (Admin) -->
+    <div id="product-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeProductModal()" class="absolute top-6 left-6 text-gray-400 hover:text-black">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 id="product-modal-title" class="text-xl font-bold">إضافة منتج جديد</h3>
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-4">
+                <input type="hidden" id="product-id">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">اسم المنتج</label>
+                    <input type="text" id="product-name-input" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">السعر (درهم)</label>
+                        <input type="number" step="0.01" id="product-price-input" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">الكمية والمخزون</label>
+                        <input type="number" id="product-stock-input" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">رابط الصورة (Image URL)</label>
+                    <input type="url" id="product-image-input" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition" placeholder="https://placehold.co/600x600">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">وصف المنتج</label>
+                    <textarea id="product-desc-input" rows="3" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black transition"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-dark text-white font-medium py-3 rounded-xl hover:bg-gray-800 transition">حفظ المنتج</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-6 left-6 bg-dark text-white px-6 py-3 rounded-2xl shadow-xl text-sm transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center space-x-3 space-x-reverse">
+        <i class="fa-solid fa-circle-check text-green-400"></i>
+        <span id="toast-message">تم بنجاح!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-8 mt-20 text-center text-xs text-gray-500">
+        <p id="footer-store-name">متجري العصري</p>
+        <p class="mt-1">جميع الحقوق محفوظة © 2026</p>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        /* -------------------------------------------------------------
+           SUPABASE CONFIGURATION & SETUP
+           Replace these keys with your Supabase Project URL and Anon Key.
+        ------------------------------------------------------------- */
+        const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+        // Initialize Supabase client
+        let supabaseClient = null;
+        try {
+            if (SUPABASE_URL !== 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.error("Supabase initialization error:", e);
+        }
+
+        // Global App State
+        let storeSettings = { store_name: "متجري العصري", phone: "+212600000000", whatsapp: "212600000000" };
+        let products = [];
+        let cart = [];
+        let orders = [];
+
+        // App Initialization
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadSettings();
+            await loadProducts();
+            updateCartBadge();
+        });
+
+        // Show Toast Notification
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Switch Views (Store vs Admin)
+        function switchView(view) {
+            const storeView = document.getElementById('view-store');
+            const adminView = document.getElementById('view-admin');
+            if (view === 'store') {
+                storeView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (view === 'admin') {
+                if (localStorage.getItem('isAdminLoggedIn') === 'true') {
+                    storeView.classList.add('hidden');
+                    adminView.classList.remove('hidden');
+                    loadAdminProducts();
+                    loadAdminOrders();
+                    loadSettingsIntoForm();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    openAdminLoginModal();
+                }
+            }
+        }
+
+        // Load Settings from Supabase or Fallback
+        async function loadSettings() {
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('settings').select('*').limit(1);
+                    if (data && data.length > 0) {
+                        storeSettings = data[0];
+                    }
+                } catch (err) {
+                    console.error("Error loading settings:", err);
+                }
+            }
+            document.getElementById('store-logo-text').innerText = storeSettings.store_name;
+            document.getElementById('hero-title').innerText = storeSettings.store_name + " - تسوق بذوق رفيع";
+            document.getElementById('footer-store-name').innerText = storeSettings.store_name;
+        }
+
+        // Load Products from Supabase or Mock
+        async function loadProducts() {
+            const grid = document.getElementById('products-grid');
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient.from('products').select('*');
+                    if (data && data.length > 0) {
+                        products = data;
+                    } else {
+                        products = getMockProducts();
+                    }
+                } catch (err) {
+                    products = getMockProducts();
+                }
+            } else {
+                products = getMockProducts();
+            }
+
+            document.getElementById('products-count').innerText = `${products.length} منتج متوفر`;
+            
+            if (products.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">لا توجد منتجات حالياً.</div>`;
+                return;
+            }
+
+            grid.innerHTML = products.map(p => `
+                <div class="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between group">
+                    <div>
+                        <div class="w-full h-64 bg-gray-100 rounded-2xl overflow-hidden mb-4 relative">
+                            <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x600/f1f1f1/333333?text=Product'">
+                            ${p.stock <= 0 ? '<span class="absolute top-3 right-3 bg-red-500 text-white text-[10px] px-3 py-1 rounded-full font-bold">نفذ المخزون</span>' : ''}
+                        </div>
+                        <h3 class="font-bold text-base text-dark mb-1">${p.title}</h3>
+                        <p class="text-gray-500 text-xs line-clamp-2 mb-3">${p.description}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-50">
+                        <span class="font-bold text-base text-dark">${p.price} درهم</span>
+                        <button onclick="addToCart('${p.id}')" ${p.stock <= 0 ? 'disabled' : ''} class="bg-dark text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-800 transition disabled:bg-gray-200 disabled:text-gray-400">
+                            إضافة للسلة
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getMockProducts() {
+            return [
+                { id: '1', title: 'ساعة يد أصلية مminimalist', price: 450, stock: 10, image: 'https://placehold.co/600x600/222222/ffffff?text=Minimalist+Watch', description: 'ساعة أنيقة وعصرية بتصميم بسيط تناسب جميع الأوقات.' },
+                { id: '2', title: 'حذاء رياضي مريح', price: 650, stock: 5, image: 'https://placehold.co/600x600/333333/ffffff?text=Sneakers', description: 'حذاء خفيف ومريح للاستخدام اليومي بجودة عالية.' },
+                { id: '3', title: 'محفظة جلدية فاخرة', price: 220, stock: 8, image: 'https://placehold.co/600x600/111111/ffffff?text=Leather+Wallet', description: 'محفظة من الجلد الطبيعي بتصميم نحيف وأنيق.' }
+            ];
+        }
+
+        function scrollToProducts() {
+            document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Cart Management
+        function addToCart(id) {
+            const product = products.find(p => p.id == id);
+            if (!product || product.stock <= 0) return;
+
+            const existing = cart.find(item => item.id == id);
+            if (existing) {
+                if (existing.quantity < product.stock) {
+                    existing.quantity++;
+                } else {
+                    showToast('عذراً، الكمية المتوفرة في المخزون محدودة.');
+                    return;
+                }
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            updateCartBadge();
+            showToast('تمت إضافة المنتج إلى السلة');
+        }
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cart-badge');
+            const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            if (totalCount > 0) {
+                badge.innerText = totalCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function openCartModal() {
+            renderCartModal();
+            document.getElementById('cart-modal').classList.remove('hidden');
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').classList.add('hidden');
+        }
+
+        function renderCartModal() {
+            const container = document.getElementById('cart-items-container');
+            const footer = document.getElementById('cart-footer');
+
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-10">السلة فارغة حالياً</p>`;
+                footer.classList.add('hidden');
+                return;
+            }
+
+            footer.classList.remove('hidden');
+            container.innerHTML = cart.map((item, index) => `
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-2xl">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <img src="${item.image}" class="w-12 h-12 rounded-xl object-cover">
+                        <div>
+                            <h4 class="font-bold text-sm">${item.title}</h4>
+                            <span class="text-xs text-gray-500">${item.price} درهم × ${item.quantity}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <button onclick="changeQty(${index}, 1)" class="w-7 h-7 bg-white rounded-lg border flex items-center justify-center font-bold text-sm">+</button>
+                        <span class="text-sm font-bold w-5 text-center">${item.quantity}</span>
+                        <button onclick="changeQty(${index}, -1)" class="w-7 h-7 bg-white rounded-lg border flex items-center justify-center font-bold text-sm">-</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cart-total-price').innerText = total.toFixed(2) + " درهم";
+        }
+
+        function changeQty(index, delta) {
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            updateCartBadge();
+            renderCartModal();
+        }
+
+        // Submit Order to Supabase
+        async function submitOrder(e) {
+            e.preventDefault();
+            const name = document.getElementById('order-name').value;
+            const phone = document.getElementById('order-phone').value;
+            const address = document.getElementById('order-address').value;
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const newOrder = {
+                customer_name: name,
+                customer_phone: phone,
+                customer_address: address,
+                items: cart,
+                total: total,
+                status: 'جديد',
+                created_at: new Date().toISOString()
+            };
+
+            if (supabaseClient) {
+                try {
+                    const { error } = await supabaseClient.from('orders').insert([newOrder]);
+                    if (error) throw error;
+                } catch (err) {
+                    console.error("Error saving order to supabase:", err);
+                }
+            }
+
+            showToast('تم إرسال طلبك بنجاح! شكراً لك.');
+            cart = [];
+            updateCartBadge();
+            closeCartModal();
+            document.getElementById('checkout-form').reset();
+        }
+
+        // Admin Auth & Management
+        function openAdminLoginModal() {
+            if (localStorage.getItem('isAdminLoggedIn') === 'true') {
+                switchView('admin');
+            } else {
+                document.getElementById('modal-admin-login').classList.remove('hidden');
+            }
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('modal-admin-login').classList.add('hidden');
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('admin-password-input').value;
+            // Secure Password Check (Default is admin123)
+            if (pass === 'admin123') {
+                localStorage.setItem('isAdminLoggedIn', 'true');
+                closeAdminLoginModal();
+                switchView('admin');
+                showToast('مرحباً بك في لوحة التحكم');
+            } else {
+                showToast('كلمة المرور غير صحيحة!');
+            }
+            document.getElementById('admin-login-form').reset();
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('isAdminLoggedIn');
+            switchView('store');
+            showToast('تم تسجيل الخروج بنجاح');
+        }
+
+        function switchAdminTab(tab) {
+            ['products', 'orders', 'settings', 'guide'].forEach(t => {
+                document.getElementById(`admin-tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "px-5 py-2.5 rounded-xl font-medium text-sm text-gray-600 hover:bg-gray-100 transition";
+            });
+            document.getElementById(`admin-tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "px-5 py-2.5 rounded-xl font-medium text-sm bg-dark text-white transition";
+        }
+
+        // Admin Products Management
+        async function loadAdminProducts() {
+            const tbody = document.getElementById('admin-products-table-body');
+            tbody.innerHTML = products.map(p => `
+                <tr class="border-b border-gray-50 hover:bg-gray-50/50">
+                    <td class="p-4 flex items-center space-x-3 space-x-reverse">
+                        <img src="${p.image}" class="w-10 h-10 rounded-lg object-cover">
+                        <span class="font-bold">${p.title}</span>
+                    </td>
+                    <td class="p-4">${p.price} درهم</td>
+                    <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${p.stock > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">${p.stock} وحدة</span></td>
+                    <td class="p-4 text-center space-x-2 space-x-reverse">
+                        <button onclick="editProduct('${p.id}')" class="text-blue-600 hover:underline text-xs font-semibold">تعديل</button>
+                        <button onclick="deleteProduct('${p.id}')" class="text-red-600 hover:underline text-xs font-semibold">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openProductModal(product = null) {
+            document.getElementById('product-modal').classList.remove('hidden');
+            if (product) {
+                document.getElementById('product-modal-title').innerText = 'تعديل المنتج';
+                document.getElementById('product-id').value = product.id;
+                document.getElementById('product-name-input').value = product.title;
+                document.getElementById('product-price-input').value = product.price;
+                document.getElementById('product-stock-input').value = product.stock;
+                document.getElementById('product-image-input').value = product.image;
+                document.getElementById('product-desc-input').value = product.description;
+            } else {
+                document.getElementById('product-modal-title').innerText = 'إضافة منتج جديد';
+                document.getElementById('product-form').reset();
+                document.getElementById('product-id').value = '';
+            }
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('product-id').value;
+            const productData = {
+                title: document.getElementById('product-name-input').value,
+                price: parseFloat(document.getElementById('product-price-input').value),
+                stock: parseInt(document.getElementById('product-stock-input').value),
+                image: document.getElementById('product-image-input').value,
+                description: document.getElementById('product-desc-input').value
+            };
+
+            if (supabaseClient) {
+                if (id) {
+                    await supabaseClient.from('products').update(productData).eq('id', id);
+                } else {
+                    await supabaseClient.from('products').insert([productData]);
+                }
+            } else {
+                if (id) {
+                    const idx = products.findIndex(p => p.id == id);
+                    if (idx !== -1) products[idx] = { ...products[idx], ...productData };
+                } else {
+                    products.push({ id: Date.now().toString(), ...productData });
+                }
+            }
+
+            closeProductModal();
+            loadProducts();
+            loadAdminProducts();
+            showToast('تم حفظ المنتج بنجاح');
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => p.id == id);
+            if (product) openProductModal(product);
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                if (supabaseClient) {
+                    await supabaseClient.from('products').delete().eq('id', id);
+                }
+                products = products.filter(p => p.id != id);
+                loadProducts();
+                loadAdminProducts();
+                showToast('تم حذف المنتج');
+            }
+        }
+
+        // Admin Orders Management
+        async function loadAdminOrders() {
+            const list = document.getElementById('admin-orders-list');
+            if (supabaseClient) {
+                try {
+                    const { data } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+                    if (data) orders = data;
+                } catch (e) {
+                    console.error("Error loading orders:", e);
+                }
+            }
+
+            document.getElementById('orders-count-badge').innerText = orders.length;
+
+            if (orders.length === 0) {
+                list.innerHTML = `<div class="bg-white p-8 rounded-3xl text-center text-gray-400 border border-gray-100">لا توجد طلبات جديدة حالياً</div>`;
+                return;
+            }
+
+            list.innerHTML = orders.map(o => `
+                <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-3">
+                        <div>
+                            <h4 class="font-bold text-base text-dark">${o.customer_name}</h4>
+                            <p class="text-xs text-gray-500"><i class="fa-solid fa-phone ml-1"></i> ${o.customer_phone} | <i class="fa-solid fa-location-dot ml-1"></i> ${o.customer_address}</p>
+                        </div>
+                        <div class="flex items-center space-x-3 space-x-reverse">
+                            <span class="bg-gray-100 text-dark px-3 py-1 rounded-full text-xs font-bold">${o.status || 'جديد'}</span>
+                            <span class="font-bold text-base">${o.total} درهم</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-xs font-bold text-gray-400 uppercase">المنتجات المطلوبة:</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${o.items.map(item => `
+                                <div class="bg-gray-50 px-3 py-1.5 rounded-xl text-xs flex items-center space-x-2 space-x-reverse border">
+                                    <span>${item.title}</span>
+                                    <span class="text-gray-400">(${item.quantity}×)</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Settings Management
+        function loadSettingsIntoForm() {
+            document.getElementById('setting-store-name').value = storeSettings.store_name || '';
+            document.getElementById('setting-phone').value = storeSettings.phone || '';
+            document.getElementById('setting-whatsapp').value = storeSettings.whatsapp || '';
+        }
+
+        async function saveStoreSettings(event) {
+            event.preventDefault();
+            storeSettings = {
+                store_name: document.getElementById('setting-store-name').value,
+                phone: document.getElementById('setting-phone').value,
+                whatsapp: document.getElementById('setting-whatsapp').value
+            };
+
+            if (supabaseClient) {
+                // Upsert settings
+                try {
+                    await supabaseClient.from('settings').upsert([{ id: 1, ...storeSettings }]);
+                } catch (e) {
+                    console.error("Error saving settings to supabase:", e);
+                }
+            }
+
+            document.getElementById('store-logo-text').innerText = storeSettings.store_name;
+            document.getElementById('hero-title').innerText = storeSettings.store_name + " - تسوق بذوق رفيع";
+            document.getElementById('footer-store-name').innerText = storeSettings.store_name;
+            showToast('تم حفظ الإعدادات بنجاح');
+        }
+    </script>
+</body>
+  </html>
